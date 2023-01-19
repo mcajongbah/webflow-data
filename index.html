@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <title>D3 Charts</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      .container {
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .tooltip {
+        position: absolute;
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 5px;
+        font-size: 12px;
+        pointer-events: none;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="chart"></div>
+      <div class="tooltip"></div>
+    </div>
+    <script>
+      const width = 1000;
+      const height = 800;
+      // draw a map of nigeria using d3
+      Promise.all([
+        d3.json("data/nigeria-states.json"),
+        d3.csv("data/election.csv"),
+      ]).then((data) => {
+        const [states, election] = data;
+
+        election.forEach((d) => {
+          d.APC = +d.APC;
+          d.PDP = +d.PDP;
+          d.CPA = +d.CPA;
+          d.DCA = +d.DCA;
+          d.PGA = +d.PGA;
+        });
+
+        // create a color scale
+        const colorScale = d3
+          .scaleOrdinal()
+          .domain(["APC", "PDP"])
+          .range(["#22891D", "#991D1F"]);
+
+        // create a state map using d3
+        const svg = d3
+          .select("#chart")
+          .append("svg")
+          .attr("width", 1000)
+          .attr("height", 800)
+          .style("border", "1px solid #ccc")
+          .style("border-radius", "10px");
+
+        // create a projection
+        const projection = d3
+          .geoMercator()
+          .scale(4000)
+          .center([8.5, 9.5])
+          .translate([500, 400]);
+
+        // create a path generator
+        const pathGenerator = d3.geoPath().projection(projection);
+
+        // create a group for the states
+        svg
+          .append("g")
+          .attr("class", "states")
+          .attr("cursor", "pointer")
+          .selectAll("path")
+          .data(topojson.feature(states, states.objects.NGA_adm1).features)
+          .enter()
+          .append("path")
+          .attr("d", pathGenerator)
+          .attr("fill", function (d) {
+            const winner = election.find(
+              (e) => e.State === d.properties.NAME_1
+            );
+
+            if (winner) {
+              return colorScale(
+                Object.keys(winner).reduce((a, b) =>
+                  winner[a] > winner[b] ? a : b
+                )
+              );
+            }
+
+            return "lightgray";
+          })
+          .attr("stroke", "white")
+          .attr("stroke-width", 1)
+          .on("mousemove", (e, d) => {
+            const tooltip = d3.select(".tooltip");
+            const state = election.find((e) => e.State === d.properties.NAME_1);
+            state &&
+              tooltip
+                .style("left", e.pageX + 10 + "px")
+                .style("top", e.pageY + 10 + "px")
+                .style("display", "block").html(`
+                <h3>${d.properties.NAME_1}</h3>
+                <p>APC: ${state.APC}</p>
+                <p>PDP: ${state.PDP}</p>
+                <p>CPA: ${state.CPA}</p>
+                <p>DCA: ${state.DCA}</p>
+                <p>PGA: ${state.PGA}</p>
+
+              `);
+          })
+          .on("mouseout", () => {
+            d3.select(".tooltip").style("display", "none");
+          });
+
+        // append state names
+        svg
+          .append("g")
+          .attr("class", "state-names")
+          .selectAll("text")
+          .data(topojson.feature(states, states.objects.NGA_adm1).features)
+          .enter()
+          .append("text")
+          .attr("x", (d) => pathGenerator.centroid(d)[0])
+          .attr("y", (d) => pathGenerator.centroid(d)[1])
+          .attr("text-anchor", "middle")
+          .attr("pointer-events", "none")
+          .attr("font-size", 10)
+          .attr("font-weight", "bold")
+          .attr("fill", "black")
+          .text((d) => d.properties.NAME_1);
+
+        // zoom to a state
+        svg.selectAll(".states path").on("click", (e, d) => {
+          const [[x0, y0], [x1, y1]] = pathGenerator.bounds(d);
+          e.stopPropagation();
+          svg
+            .transition()
+            .duration(750)
+            .call(
+              zoom.transform,
+              d3.zoomIdentity
+                .translate(width / 2, height / 2)
+                .scale(
+                  Math.min(
+                    8,
+                    0.9 / Math.max((x1 - x0) / width, (y1 - y0) / height)
+                  )
+                )
+                .translate(-(x0 + x1) / 2, -(y0 + y1) / 2),
+              d3.pointer(e, svg.node())
+            );
+        });
+
+        // zoom to the whole map
+        svg.on("click", () => {
+          svg
+            .transition()
+            .duration(750)
+            .call(
+              zoom.transform,
+              d3.zoomIdentity,
+              d3.zoomTransform(svg.node()).invert([width / 2, height / 2])
+            );
+        });
+
+        // create a zoom behavior
+        const zoom = d3
+          .zoom()
+          .scaleExtent([1, 8])
+          .on("zoom", (e) => {
+            svg.selectAll("g").attr("transform", e.transform);
+          });
+
+        svg.call(zoom);
+
+        //chart title
+        svg
+          .append("text")
+          .attr("x", 500)
+          .attr("y", 30)
+          .attr("text-anchor", "middle")
+          .attr("font-size", 24)
+          .attr("font-weight", "bold")
+          .attr("fill", "black")
+          .text("Nigeria Presidential Elections Results 2019");
+      });
+    </script>
+  </body>
+</html>
