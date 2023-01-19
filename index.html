@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/topojson-client@3"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
     <title>D3 Charts</title>
     <style>
       * {
@@ -13,12 +19,36 @@
         padding: 0;
         box-sizing: border-box;
       }
+
+      body {
+        font-family: "DM Sans", sans-serif;
+      }
+
       .container {
         width: 100%;
         height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
+      }
+
+      .candidate {
+        font-weight: bold;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      tr {
+        text-align: left;
+      }
+
+      td,
+      th {
+        padding: 5px 20px;
+        padding-left: 0px;
       }
 
       .tooltip {
@@ -51,16 +81,54 @@
         election.forEach((d) => {
           d.APC = +d.APC;
           d.PDP = +d.PDP;
-          d.CPA = +d.CPA;
-          d.DCA = +d.DCA;
-          d.PGA = +d.PGA;
+          d.PCP = +d.PCP;
+          d.ADC = +d.ADC;
+          d.APGA = +d.APGA;
         });
 
+        const candidates = {
+          APC: "Muhammadu Buhari (APC)",
+          PDP: "Atiku Abubakar (PDP)",
+          PCP: "Felix Nicolas (PCP)",
+          ADC: "Obadiah Mailafia (ADC)",
+          APGA: "Gbor John Wilson Terwase (APGA)",
+        };
+        const percentage = [40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90];
+
         // create a color scale
-        const colorScale = d3
+        const PDPColourScale = d3
           .scaleOrdinal()
-          .domain(["APC", "PDP"])
-          .range(["#22891D", "#991D1F"]);
+          .domain([40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90])
+          .range([
+            "#A3FFA6",
+            "#70FF74",
+            "#4FFF42",
+            "#4FFF0C",
+            "#41D605",
+            "#2FA302",
+            "#258602",
+            "#1B6902",
+            "#135202",
+            "#0A3802",
+            "#042002",
+          ]);
+
+        const APCColourScale = d3
+          .scaleLinear()
+          .domain([40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90])
+          .range([
+            "#B4D6F3",
+            "#87BEEB",
+            "#5FAAE2",
+            "#3290DD",
+            "#246CB0",
+            "#1C5A90",
+            "#164979",
+            "#113F64",
+            "#0D314F",
+            "#092539",
+            "#041525",
+          ]);
 
         // create a state map using d3
         const svg = d3
@@ -92,40 +160,71 @@
           .append("path")
           .attr("d", pathGenerator)
           .attr("fill", function (d) {
-            const winner = election.find(
-              (e) => e.State === d.properties.NAME_1
+            const state = election.find((e) => e.State === d.properties.NAME_1);
+
+            const winner = Object.keys(state).reduce((a, b) =>
+              state[a] > state[b] ? a : b
             );
+            // return winning percentage
+            const percentage = (
+              (state[winner] /
+                Object.values(state)
+                  .splice(1)
+                  .reduce((a, b) => a + b)) *
+              100
+            ).toFixed(2);
 
-            if (winner) {
-              return colorScale(
-                Object.keys(winner).reduce((a, b) =>
-                  winner[a] > winner[b] ? a : b
-                )
-              );
-            }
-
-            return "lightgray";
+            return winner === "APC"
+              ? APCColourScale(percentage)
+              : PDPColourScale(percentage);
           })
           .attr("stroke", "white")
           .attr("stroke-width", 1)
-          .on("mousemove", (e, d) => {
+          .on("mousemove", function (e, d) {
+            d3.select(this).attr("opacity", 0.8);
             const tooltip = d3.select(".tooltip");
             const state = election.find((e) => e.State === d.properties.NAME_1);
-            state &&
-              tooltip
-                .style("left", e.pageX + 10 + "px")
-                .style("top", e.pageY + 10 + "px")
-                .style("display", "block").html(`
-                <h3>${d.properties.NAME_1}</h3>
-                <p>APC: ${state.APC}</p>
-                <p>PDP: ${state.PDP}</p>
-                <p>CPA: ${state.CPA}</p>
-                <p>DCA: ${state.DCA}</p>
-                <p>PGA: ${state.PGA}</p>
-
+            const winner = Object.keys(state).reduce((a, b) =>
+              state[a] > state[b] ? a : b
+            );
+            tooltip
+              .style("left", e.pageX + 10 + "px")
+              .style("top", e.pageY + 10 + "px")
+              .style("display", "block").html(`
+              <h2>${d.properties.NAME_1}</h2>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Candidate</th>
+                      <th>Votes</th>
+                      <th>Percentage</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${Object.keys(state)
+                      .splice(1)
+                      .map(
+                        (key) =>
+                          `<tr style='background-color: ${
+                            key === winner ? "gray" : "inherit"
+                          }'>
+                            <td class='candidate'>${candidates[key]}</td>
+                            <td>${state[key]}</td>
+                            <td>${(
+                              (state[key] /
+                                Object.values(state)
+                                  .splice(1)
+                                  .reduce((a, b) => a + b)) *
+                              100
+                            ).toFixed(2)}%</td>
+                          </tr>`
+                      )
+                      .join("")}
+                  </tbody>
               `);
           })
-          .on("mouseout", () => {
+          .on("mouseout", function () {
+            d3.select(this).attr("opacity", 1);
             d3.select(".tooltip").style("display", "none");
           });
 
@@ -144,18 +243,87 @@
           .attr("font-size", 10)
           .attr("font-weight", "bold")
           .attr("fill", "white")
-          .text((d) => d.properties.NAME_1);
+          .text((d) =>
+            d.properties.NAME_1 === "Federal Capital Territory"
+              ? "FCT"
+              : d.properties.NAME_1
+          );
 
-        //chart title
-        svg
+        const legend = svg
+          .append("g")
+          .attr("class", "legend")
+          .attr("transform", `translate(${width - 400}, ${height - 100})`);
+
+        // legend for APC
+        legend
+          .append("g")
+          .attr("class", "apc-legend")
+          .attr("transform", "translate(20, 20)")
+          .selectAll("rect")
+          .data(percentage)
+          .enter()
+          .append("rect")
+          .attr("x", (d, i) => i * 30)
+          .attr("y", 0)
+          .attr("width", 30)
+          .attr("height", 20)
+          .attr("fill", (d) => APCColourScale(d));
+
+        // legend for PDP
+        legend
+          .append("g")
+          .attr("class", "pdp-legend")
+          .attr("transform", "translate(20, 45)")
+          .selectAll("rect")
+          .data(percentage)
+          .enter()
+          .append("rect")
+          .attr("x", (d, i) => i * 30)
+          .attr("y", 0)
+          .attr("width", 30)
+          .attr("height", 20)
+          .attr("fill", (d) => PDPColourScale(d));
+
+        // legend text
+        legend
+          .append("g")
+          .attr("transform", "translate(20, 0)")
+          .selectAll("text")
+          .data(percentage)
+          .enter()
           .append("text")
-          .attr("x", 500)
-          .attr("y", 30)
+          .attr("x", (d, i) => i * 30)
+          .attr("y", 0)
+          .attr("dx", 15)
+          .attr("dy", 15)
           .attr("text-anchor", "middle")
-          .attr("font-size", 24)
+          .attr("font-size", 10)
+          .attr("fill", "black")
+          .text((d) => d + "%");
+
+        d3.selectAll(".apc-legend")
+          .append("text")
+          .attr("x", 0)
+          .attr("y", 0)
+          .attr("dx", -10)
+          .attr("dy", 15)
+          .attr("text-anchor", "end")
+          .attr("font-size", 14)
           .attr("font-weight", "bold")
           .attr("fill", "black")
-          .text("Nigeria Presidential Elections Results 2019");
+          .text("APC");
+
+        d3.selectAll(".pdp-legend")
+          .append("text")
+          .attr("x", 0)
+          .attr("y", 0)
+          .attr("dx", -10)
+          .attr("dy", 15)
+          .attr("text-anchor", "end")
+          .attr("font-size", 14)
+          .attr("font-weight", "bold")
+          .attr("fill", "black")
+          .text("PDP");
       });
     </script>
   </body>
