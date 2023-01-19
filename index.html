@@ -143,52 +143,8 @@
           .attr("pointer-events", "none")
           .attr("font-size", 10)
           .attr("font-weight", "bold")
-          .attr("fill", "black")
+          .attr("fill", "white")
           .text((d) => d.properties.NAME_1);
-
-        // zoom to a state
-        svg.selectAll(".states path").on("click", (e, d) => {
-          const [[x0, y0], [x1, y1]] = pathGenerator.bounds(d);
-          e.stopPropagation();
-          svg
-            .transition()
-            .duration(750)
-            .call(
-              zoom.transform,
-              d3.zoomIdentity
-                .translate(width / 2, height / 2)
-                .scale(
-                  Math.min(
-                    8,
-                    0.9 / Math.max((x1 - x0) / width, (y1 - y0) / height)
-                  )
-                )
-                .translate(-(x0 + x1) / 2, -(y0 + y1) / 2),
-              d3.pointer(e, svg.node())
-            );
-        });
-
-        // zoom to the whole map
-        svg.on("click", () => {
-          svg
-            .transition()
-            .duration(750)
-            .call(
-              zoom.transform,
-              d3.zoomIdentity,
-              d3.zoomTransform(svg.node()).invert([width / 2, height / 2])
-            );
-        });
-
-        // create a zoom behavior
-        const zoom = d3
-          .zoom()
-          .scaleExtent([1, 8])
-          .on("zoom", (e) => {
-            svg.selectAll("g").attr("transform", e.transform);
-          });
-
-        svg.call(zoom);
 
         //chart title
         svg
