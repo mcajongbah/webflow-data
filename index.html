@@ -28,6 +28,7 @@
         width: 100%;
         height: 100vh;
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
       }
@@ -54,30 +55,77 @@
       .tooltip {
         position: absolute;
         background: #fff;
-        border: 1px solid #ccc;
         border-radius: 5px;
-        padding: 5px;
         font-size: 12px;
         pointer-events: none;
         display: none;
+        border: 1px solid #ccc;
+      }
+
+      .chart-container {
+        width: 100%;
+        height: 100%;
+        max-width: 800px;
+        max-height: 600px;
+      }
+
+      @media (max-width: 640px) {
+        .chart-container {
+          max-width: 100%;
+          max-height: 400px;
+        }
+
+        .tooltip {
+          font-size: 12px;
+          position: relative;
+          width: 100%;
+          border: none;
+        }
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <div id="chart"></div>
+      <div id="chart" class="chart-container"></div>
       <div class="tooltip"></div>
     </div>
     <script>
-      const width = 1000;
-      const height = 800;
+      let width = document
+        .getElementById("chart")
+        .getBoundingClientRect().width;
+      let height = document
+        .getElementById("chart")
+        .getBoundingClientRect().height;
       // draw a map of nigeria using d3
       Promise.all([
-        d3.json("data/nigeria-states.json"),
-        d3.csv("data/election.csv"),
+        d3.json(
+          "https://raw.githubusercontent.com/mcajongbah/webflow-data/main/data/nigeria-states.json"
+        ),
+        d3.csv(
+          "https://raw.githubusercontent.com/mcajongbah/webflow-data/main/data/election.csv"
+        ),
       ]).then((data) => {
         const [states, election] = data;
+        drawMap(states, election, width, height);
 
+        let resizeTimer;
+
+        window.addEventListener("resize", () => {
+          width = document
+            .getElementById("chart")
+            .getBoundingClientRect().width;
+          height = document
+            .getElementById("chart")
+            .getBoundingClientRect().height;
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            d3.select("svg").remove();
+            drawMap(states, election, width, height);
+          }, 500);
+        });
+      });
+
+      function drawMap(states, election, width, height) {
         election.forEach((d) => {
           d.APC = +d.APC;
           d.PDP = +d.PDP;
@@ -134,17 +182,18 @@
         const svg = d3
           .select("#chart")
           .append("svg")
-          .attr("width", 1000)
-          .attr("height", 800)
-          .style("border", "1px solid #ccc")
-          .style("border-radius", "10px");
+          .attr("width", width)
+          .attr("height", height)
+          .attr("viewBox", [0, 0, width, height])
+          .attr("preserveAspectRatio", "xMidYMid meet");
 
         // create a projection
         const projection = d3
           .geoMercator()
-          .scale(4000)
-          .center([8.5, 9.5])
-          .translate([500, 400]);
+          .fitSize(
+            [width, height],
+            topojson.feature(states, states.objects.NGA_adm1)
+          );
 
         // create a path generator
         const pathGenerator = d3.geoPath().projection(projection);
@@ -188,9 +237,10 @@
               state[a] > state[b] ? a : b
             );
             tooltip
-              .style("left", e.pageX + 10 + "px")
-              .style("top", e.pageY + 10 + "px")
-              .style("display", "block").html(`
+              .style("left", width > 640 ? e.pageX + 10 + "px" : "0px")
+              .style("top", width > 640 ? e.pageY + 10 + "px" : "0px")
+              .style("display", "block")
+              .style("padding", "5px").html(`
               <h2>${d.properties.NAME_1}</h2>
                 <table>
                   <thead>
@@ -252,7 +302,7 @@
         const legend = svg
           .append("g")
           .attr("class", "legend")
-          .attr("transform", `translate(${width - 400}, ${height - 100})`);
+          .attr("transform", `translate(${width - 140}, ${height - 50})`);
 
         // legend for APC
         legend
@@ -263,25 +313,25 @@
           .data(percentage)
           .enter()
           .append("rect")
-          .attr("x", (d, i) => i * 30)
+          .attr("x", (d, i) => i * 10)
           .attr("y", 0)
-          .attr("width", 30)
-          .attr("height", 20)
+          .attr("width", 10)
+          .attr("height", 10)
           .attr("fill", (d) => APCColourScale(d));
 
         // legend for PDP
         legend
           .append("g")
           .attr("class", "pdp-legend")
-          .attr("transform", "translate(20, 45)")
+          .attr("transform", "translate(20, 35)")
           .selectAll("rect")
           .data(percentage)
           .enter()
           .append("rect")
-          .attr("x", (d, i) => i * 30)
+          .attr("x", (d, i) => i * 10)
           .attr("y", 0)
-          .attr("width", 30)
-          .attr("height", 20)
+          .attr("width", 10)
+          .attr("height", 10)
           .attr("fill", (d) => PDPColourScale(d));
 
         // legend text
@@ -292,24 +342,23 @@
           .data(percentage)
           .enter()
           .append("text")
-          .attr("x", (d, i) => i * 30)
+          .attr("x", (d, i) => i * 10)
           .attr("y", 0)
-          .attr("dx", 15)
+          .attr("dx", 4)
           .attr("dy", 15)
           .attr("text-anchor", "middle")
-          .attr("font-size", 10)
+          .attr("font-size", 6)
           .attr("fill", "black")
-          .text((d) => d + "%");
+          .text((d) => d);
 
         d3.selectAll(".apc-legend")
           .append("text")
           .attr("x", 0)
           .attr("y", 0)
           .attr("dx", -10)
-          .attr("dy", 15)
+          .attr("dy", 8)
           .attr("text-anchor", "end")
-          .attr("font-size", 14)
-          .attr("font-weight", "bold")
+          .attr("font-size", 10)
           .attr("fill", "black")
           .text("APC");
 
@@ -318,13 +367,12 @@
           .attr("x", 0)
           .attr("y", 0)
           .attr("dx", -10)
-          .attr("dy", 15)
+          .attr("dy", 8)
           .attr("text-anchor", "end")
-          .attr("font-size", 14)
-          .attr("font-weight", "bold")
+          .attr("font-size", 10)
           .attr("fill", "black")
           .text("PDP");
-      });
+      }
     </script>
   </body>
 </html>
