@@ -129,23 +129,29 @@ function drawMap(states, election, width, height) {
     })
     .attr("stroke", "white")
     .attr("stroke-width", 1)
-    on("mouseenter", function (e, d) {
-        d3.select(this).attr("opacity", 0.8);
-        d3.select(".tooltip")
-        .style("display", "block")
-    })
-    .on("mousemove", function (e, d) {
+    .on("mouseenter", function (e, d) {
       d3.select(this).attr("opacity", 0.8);
-      const tooltip = d3.select(".tooltip");
-      const state = election.find((e) => e.State === d.properties.NAME_1);
-      const winner = Object.keys(state).reduce((a, b) =>
-        state[a] > state[b] ? a : b
-      );
-      tooltip
-        .style("left", width > 640 ? e.pageX + 10 + "px" : "0px")
-        .style("top", width > 640 ? e.pageY + 10 + "px" : "0px")
-        .style("display", "block")
-        .style("padding", "5px").html(`
+      d3.select(".tooltip").style("display", "block");
+    })
+    .on("mousemove", onMouseMove)
+    .on("mouseout", function () {
+      d3.select(this).attr("opacity", 1);
+      d3.select(".tooltip").style("display", "none");
+    })
+    .on("click", width < 640 ? onMouseMove : null);
+
+  function onMouseMove(e, d) {
+    d3.select(this).attr("opacity", 0.8);
+    const tooltip = d3.select(".tooltip");
+    const state = election.find((e) => e.State === d.properties.NAME_1);
+    const winner = Object.keys(state).reduce((a, b) =>
+      state[a] > state[b] ? a : b
+    );
+    tooltip
+      .style("left", width > 640 ? e.pageX + 10 + "px" : "0px")
+      .style("top", width > 640 ? e.pageY + 10 + "px" : "0px")
+      .style("display", "block")
+      .style("padding", "5px").html(`
               <h2>${d.properties.NAME_1}</h2>
                 <table>
                   <thead>
@@ -177,11 +183,7 @@ function drawMap(states, election, width, height) {
                       .join("")}
                   </tbody>
               `);
-    })
-    .on("mouseout", function () {
-      d3.select(this).attr("opacity", 1);
-      d3.select(".tooltip").style("display", "none");
-    });
+  }
 
   // append state names
   svg
