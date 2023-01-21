@@ -135,7 +135,6 @@ function drawMap(states, election, width, height) {
       d3.select(this).attr("opacity", 1);
       d3.select(".tooltip").style("display", "none");
     })
-    .on("click", width < 640 ? onMouseMove : null);
 
   function onMouseMove(e, d) {
     d3.select(this).attr("opacity", 0.8);
