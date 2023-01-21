@@ -129,8 +129,11 @@ function drawMap(states, election, width, height) {
     })
     .attr("stroke", "white")
     .attr("stroke-width", 1)
-    .attr("pointer-events", "all")
-    .on("mousemove", onMouseMove)
+    .on("mouseenter", function (e, d) {
+      d3.select(this).attr("opacity", 0.8);
+      d3.select(".tooltip").style("display", "block");
+    })
+    .on("mousemove" | "touchstart", onMouseMove)
     .on("mouseout", function () {
       d3.select(this).attr("opacity", 1);
       d3.select(".tooltip").style("display", "none");
@@ -151,7 +154,6 @@ function drawMap(states, election, width, height) {
       .style("padding", "5px").html(`
         <div>
             <h2>${d.properties.NAME_1}</h2>
-            <button>X</button>
         </div>
         <table>
             <thead>
@@ -167,7 +169,7 @@ function drawMap(states, election, width, height) {
               .map(
                 (key) =>
                   `<tr style='background-color: ${
-                    key === winner ? "#ccc" : "inherit"
+                    key === winner ? "gray" : "inherit"
                   }'>
                     <td class='candidate'>${candidates[key]}</td>
                     <td>${state[key]}</td>
@@ -184,10 +186,6 @@ function drawMap(states, election, width, height) {
             </tbody>
         `);
   }
-
-  d3.select(".tooltip button").on("click", function () {
-    d3.select(".tooltip").style("display", "none");
-  });
 
   // append state names
   svg
