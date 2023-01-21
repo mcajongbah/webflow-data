@@ -129,6 +129,11 @@ function drawMap(states, election, width, height) {
     })
     .attr("stroke", "white")
     .attr("stroke-width", 1)
+    on("mouseenter", function (e, d) {
+        d3.select(this).attr("opacity", 0.8);
+        d3.select(".tooltip")
+        .style("display", "block")
+    })
     .on("mousemove", function (e, d) {
       d3.select(this).attr("opacity", 0.8);
       const tooltip = d3.select(".tooltip");
