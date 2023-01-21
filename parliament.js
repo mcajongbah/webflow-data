@@ -25,8 +25,6 @@ var Dataset = [
   },
 ];
 
-d3.select(".parliament-container").append("svg")
-
 var parliament = d3.parliament().width(600).innerRadiusCoef(0.4);
 parliament.enter.fromCenter(true).smallToBig(true);
 parliament.exit.toCenter(true).bigToSmall(true);
@@ -43,6 +41,6 @@ parliament.on("mouseout", function (e) {
   d3.select("#parliament-tooltip").style("opacity", 0).style("display", "none");
 });
 var setData = function (d) {
-  d3.select(".parliament-container svg").datum(d).call(parliament);
+  d3.select(".parliament-container").append("svg").datum(d).call(parliament);
 };
 setData(Dataset);
