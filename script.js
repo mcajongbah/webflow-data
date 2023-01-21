@@ -133,7 +133,7 @@ function drawMap(states, election, width, height) {
       d3.select(this).attr("opacity", 0.8);
       d3.select(".tooltip").style("display", "block");
     })
-    .on("mousemove", onMouseMove)
+    .on("mousemove" | "touchstart", onMouseMove)
     .on("mouseout", function () {
       d3.select(this).attr("opacity", 1);
       d3.select(".tooltip").style("display", "none");
