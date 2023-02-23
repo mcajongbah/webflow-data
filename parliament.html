@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <script
       src="https://rawcdn.githack.com/geoffreybr/d3-parliament/96a9506a95a87a8e6c93a840e4dd4b79cb3cc4a6/d3-parliament.min.js"
       charset="utf-8"
@@ -27,6 +27,7 @@
       svg {
         width: 100%;
         height: 100%;
+        margin: auto 0;
       }
       .parliament-container {
         width: 100%;
@@ -62,6 +63,58 @@
     </div>
 
     <!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/mcajongbah/webflow-data@main/parliament.js"></script> -->
-    <script type="text/javascript" src="parliament.js"></script>
+    <script type="text/javascript">
+      var Dataset = [
+        {
+          id: "APC",
+          legend: "APC Group",
+          name: "APC Group",
+          seats: 63,
+        },
+        {
+          id: "PDP",
+          legend: "PDP Group",
+          name: "PDP Group",
+          seats: 44,
+        },
+        {
+          id: "YPP",
+          legend: "YPP Group",
+          name: "YPP Group",
+          seats: 1,
+        },
+        {
+          id: "Vacant",
+          legend: "Vacant",
+          name: "Vacant",
+          seats: 1,
+        },
+      ];
+
+      var parliament = d3.parliament().width(600).innerRadiusCoef(0.4);
+      parliament.enter.fromCenter(true).smallToBig(true);
+      parliament.exit.toCenter(true).bigToSmall(true);
+      parliament.on("mousemove", function (e) {
+        d3.select("#parliament-tooltip")
+          .style("opacity", 1)
+          .style("display", "block")
+          .html("<b>" + e.target.__data__.party.id + "</b> ")
+          .style("left", e.pageX + "px")
+          .style("top", e.pageY - 40 + "px")
+          .style("fill-opacity", "0.5");
+      });
+      parliament.on("mouseout", function (e) {
+        d3.select("#parliament-tooltip")
+          .style("opacity", 0)
+          .style("display", "none");
+      });
+      var setData = function (d) {
+        d3.select(".parliament-container")
+          .append("svg")
+          .datum(d)
+          .call(parliament);
+      };
+      setData(Dataset);
+    </script>
   </body>
 </html>

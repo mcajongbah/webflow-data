@@ -135,6 +135,11 @@ function drawMap(states, election, width, height) {
       d3.select(this).attr("opacity", 1);
       d3.select(".tooltip").style("display", "none");
     })
+    .on("click", function (event, d) {
+      const state = d.properties.NAME_1;
+
+      window.location.href = `state.html?state=${state}`;
+    });
 
   function onMouseMove(e, d) {
     d3.select(this).attr("opacity", 0.8);
@@ -181,6 +186,11 @@ function drawMap(states, election, width, height) {
               )
               .join("")}
             </tbody>
+        </table>
+
+        <div class='state-link'>
+          <a href='state.html?state=${d.properties.NAME_1}'>View State</a>
+        </div>
         `);
   }
 
